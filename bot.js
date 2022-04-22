@@ -47,43 +47,44 @@ CRABS.forEach((id, index) => {
     TEAMS.push(team);
 });
 function mine() {
-    running = true;
-    if (!mining) {
-        if (ii < TEAMS.length) {
-            start(TEAMS[ii])
-                .then(() => {
-                ii++;
-            })
-                .catch((err) => {
-                console.log(`Err: ${err}`);
-            })
-                .finally(() => {
-                mine();
-            });
+    if (running) {
+        if (!mining) {
+            if (ii < TEAMS.length) {
+                start(TEAMS[ii])
+                    .then(() => {
+                    ii++;
+                })
+                    .catch((err) => {
+                    console.log(`Err: ${err}`);
+                })
+                    .finally(() => {
+                    mine();
+                });
+            }
+            else {
+                mining = true;
+                ii = 0;
+                var timer = setTimeout(() => { mine(); }, 14450000);
+            }
         }
         else {
-            mining = true;
-            ii = 0;
-            var timer = setTimeout(() => { mine(); }, 14450000);
-        }
-    }
-    else {
-        if (ii < TEAMS.length) {
-            close(TEAMS[ii])
-                .then(() => {
-                ii++;
-            })
-                .catch((err) => {
-                console.log(`Err: ${err}`);
-            })
-                .finally(() => {
+            if (ii < TEAMS.length) {
+                close(TEAMS[ii])
+                    .then(() => {
+                    ii++;
+                })
+                    .catch((err) => {
+                    console.log(`Err: ${err}`);
+                })
+                    .finally(() => {
+                    mine();
+                });
+            }
+            else {
+                mining = false;
+                ii = 0;
                 mine();
-            });
-        }
-        else {
-            mining = false;
-            ii = 0;
-            mine();
+            }
         }
     }
 }
@@ -101,7 +102,7 @@ function start(team) {
         let game = receipt.logs[0].data.slice(2, 66);
         TEAMS[ii].close = '0x2d6ef310' + game;
         let URL = 'https://snowtrace.io/tx/' + (hash);
-        bot.sendMessage(TELEGRAM, `Game Started (Team ${ii + 1}\n${URL}`);
+        bot.sendMessage(TELEGRAM, `Game Started (Team ${ii + 1})\n${URL}`);
     });
 }
 function close(team) {
@@ -116,7 +117,7 @@ function close(team) {
         let hash = txn.hash;
         let receipt = yield AVALANCHE.waitForTransaction(String(hash));
         let URL = 'https://snowtrace.io/tx/' + (hash);
-        bot.sendMessage(TELEGRAM, `Game Closed (Team ${ii + 1}\n${URL}`);
+        bot.sendMessage(TELEGRAM, `Game Closed (Team ${ii + 1})\n${URL}`);
     });
 }
 function getWalletBalance() {
@@ -202,7 +203,18 @@ let bot = new TeleBot(API);
 bot.on('/start', (msg) => {
     if (String(msg.from.username).toLowerCase() === String(USERNAME).toLowerCase()) {
         if (!running) {
+            running = true;
             mine();
+        }
+    }
+    else {
+        bot.sendMessage(TELEGRAM, `Error: No Access`).catch(error => console.log(error));
+    }
+});
+bot.on('/pause', (msg) => {
+    if (String(msg.from.username).toLowerCase() === String(USERNAME).toLowerCase()) {
+        if (running) {
+            running = false;
         }
     }
     else {
